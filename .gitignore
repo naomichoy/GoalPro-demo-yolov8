@@ -167,6 +167,7 @@ model/
 runs/
 sample_videos/
 output_frames/
+ultralytics/
 *.mp4
 *.m4v
 

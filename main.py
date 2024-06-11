@@ -1,12 +1,17 @@
 import os
 import time
+from collections import defaultdict
+
 import numpy as np
 import json
 import cv2
 import math
 from ultralytics import YOLO
+from ultralytics.utils.plotting import Annotator, colors
+
 import torch
 from PIL import Image
+
 
 print(f"torch version: {torch.__version__}")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -65,11 +70,16 @@ if not os.path.exists(output_path):
 
 
 # Load a model
-model = YOLO('yolov8l-seg.pt')  # pretrained YOLOv8n model
+model = YOLO('model/yolov8l-pose.pt')  # pretrained YOLOv8n model
 
 cap = cv2.VideoCapture(vid)
 cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
 frame_number = 0
+
+# Store the track history
+track_history = defaultdict(lambda: [])
+draw_track = False
+
 start_time = time.time()
 while cap.isOpened():
     _, frame = cap.read()
@@ -77,12 +87,46 @@ while cap.isOpened():
         print("read frame fail")
         break
 
+    results = model.track(frame, device=device, classes=[0,32], conf=0.28, show_conf=True, iou=0.6, persist=True)
 
-    results = model.predict(frame, device=device, classes=[0,32], conf=0.3, show_conf=True, iou=0.5)
+    # filter noisy ball detection
     real_ball_ind = calculate_real_ball(results)
+
+    # draw on frame
     frame = results[0].plot(font_size=1, line_width=1)
 
+    # ## Create an annotator object to draw on the frame
+    # annotator = Annotator(frame, line_width=2)
 
+    # Get the boxes and track IDs
+    boxes = results[0].boxes.xywh.cpu()
+    track_ids = results[0].boxes.id.int().cpu().tolist()
+
+    # Check if tracking IDs and masks are present in the results
+    # if results[0].boxes.id is not None and results[0].masks is not None:
+    #     # Extract masks and tracking IDs
+    #     masks = results[0].masks.xy
+    #     track_ids = results[0].boxes.id.int().cpu().tolist()
+    #
+    #     # Annotate each mask with its corresponding tracking ID and color
+    #     for mask, track_id in zip(masks, track_ids):
+    #         annotator.seg_bbox(mask=mask, mask_color=colors(track_id, True), track_label=str(track_id))
+
+    if draw_track:
+        # Plot the tracks
+        for box, track_id in zip(boxes, track_ids):
+            x, y, w, h = box
+            track = track_history[track_id]
+            track.append((float(x), float(y)))  # x, y center point
+            if len(track) > 30:  # retain 90 tracks for 90 frames
+                track.pop(0)
+
+            # Draw the tracking lines
+            points = np.hstack(track).astype(np.int32).reshape((-1, 1, 2))
+            cv2.polylines(frame, [points], isClosed=False, color=(230, 230, 230), thickness=1)
+
+
+    # add frame number
     cv2.putText(frame, str(frame_number), (0, 30), cv2.FONT_HERSHEY_SIMPLEX,
                 1, (0, 0, 255), 1, cv2.LINE_AA)  # frame number
     cv2.imshow('frame', frame)
