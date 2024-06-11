@@ -26,7 +26,7 @@ def save_frame(frame, frame_number):
     pil_image = Image.fromarray(color_coverted)
 
     # Save the frame as an image file
-    frame_path = f"{output_path}/frame_{str(frame_number).zfill(12)}.jpg"
+    frame_path = f"{frame_output_path}/frame_{str(frame_number).zfill(12)}.jpg"
     pil_image.save(frame_path)
 
 
@@ -60,21 +60,36 @@ def calculate_real_ball(results):
     return ind
 
 
+# define model
+model_size = 'l'
+model_task = ''   # -seg, -pose
+
 vid = "./sample_videos/3min.mp4"
-output_path = f"output_frames/{vid.split('/')[-1].split('.')[0]}"
+frame_output_path = f"output_frames/{vid.split('/')[-1].split('.')[0]}"
+vid_output_path = f'output_video'
 
 # create output folder
-if not os.path.exists(output_path):
-    print("output frames to", output_path)
-    os.makedirs(output_path)
+if not os.path.exists(frame_output_path):
+    print("output frames to", frame_output_path)
+    os.makedirs(frame_output_path)
 
+if not os.path.exists(vid_output_path):
+    print("output vid to", vid_output_path)
+    os.makedirs(vid_output_path)
 
 # Load a model
-model = YOLO('model/yolov8l-pose.pt')  # pretrained YOLOv8n model
+model = YOLO(f'model/yolov8{model_size}{model_task}.pt')  # pretrained YOLOv8n model
 
+# read video input
 cap = cv2.VideoCapture(vid)
 cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
 frame_number = 0
+
+# Retrieve video properties: width, height, and frames per second
+w, h, fps = (int(cap.get(x)) for x in (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS))
+
+# Initialize video writer to save the output video with the specified properties
+out = cv2.VideoWriter(f"demo-yolov8{model_size}-{model_task}.mp4", cv2.VideoWriter_fourcc(*"MPV4"), fps, (w, h))
 
 # Store the track history
 track_history = defaultdict(lambda: [])
@@ -126,13 +141,18 @@ while cap.isOpened():
             cv2.polylines(frame, [points], isClosed=False, color=(230, 230, 230), thickness=1)
 
 
-    # add frame number
+    # add frame number to frame
     cv2.putText(frame, str(frame_number), (0, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                1, (0, 0, 255), 1, cv2.LINE_AA)  # frame number
+                1, (0, 0, 255), 1, cv2.LINE_AA)
+
+    # display frame
     cv2.imshow('frame', frame)
 
     frame_number += 1
+    # save frame as picture
     save_frame(frame, frame_number)
+    # Write the annotated frame to the output video
+    out.write(frame)
 
     # mid video ckpt
     if frame_number == 500:

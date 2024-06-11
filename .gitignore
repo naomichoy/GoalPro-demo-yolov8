@@ -164,12 +164,15 @@ cython_debug/
 *.pt
 model/
 
+# project files
 runs/
 sample_videos/
 output_frames/
 ultralytics/
+output_video/
 *.mp4
 *.m4v
+*.avi
 
 
 .zip/
