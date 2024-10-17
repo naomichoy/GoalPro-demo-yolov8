@@ -9,7 +9,7 @@ To create player's reel of the game where they interact with the ball
 - player id changes when they go out of the frame
 - detect player's movements with yolov8 pose estimation model
 
-![demo](https://github.com/naomichoy/GoalPro-demo-yolov8/demo-yolov8-480p.mp4)
+![demo](https://github.com/naomichoy/GoalPro-demo-yolov8//blob/master/demo-yolov8-480p.mp4)
 
 ### Remarks: 
 ball detection and pose detection has to run on different model
