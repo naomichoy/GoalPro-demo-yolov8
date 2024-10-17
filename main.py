@@ -89,7 +89,7 @@ frame_number = 0
 w, h, fps = (int(cap.get(x)) for x in (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS))
 
 # Initialize video writer to save the output video with the specified properties
-out = cv2.VideoWriter(f"demo-yolov8{model_size}-{model_task}.mp4", cv2.VideoWriter_fourcc(*"MPV4"), fps, (w, h))
+out = cv2.VideoWriter(f"demo-yolov8{model_size}{model_task}.mp4", cv2.VideoWriter_fourcc(*"MPV4"), fps, (w, h))
 
 # Store the track history
 track_history = defaultdict(lambda: [])
